@@ -285,3 +285,31 @@ exports.deleteMessages = asyncErrorHandler(async (req, res, next) => {
     message: `Deleted ${result.deletedCount} messages successfully`,
   });
 });
+
+// update chat status
+exports.updateMessageStatus = asyncErrorHandler(async (req, res, next) => {
+  const { messageId } = req.params;
+  const { status } = req.body;
+
+  // Validate status
+  if (!["DELIVERED", "FAIL", "SENT", "PENDING"].includes(status)) {
+    return next(new CustomError("Invalid status provided", 400));
+  }
+
+  const updatedMessage = await Chat.findByIdAndUpdate(
+    messageId,
+    { status },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedMessage) {
+    return next(new CustomError("Message not found", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: updatedMessage,
+    },
+  });
+});

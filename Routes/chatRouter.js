@@ -14,6 +14,9 @@ router
   .route("/update")
   .patch(authController.protect, chatController.updateMessage);
 router
+  .route("/update/:messageId")
+  .patch(authController.protect, chatController.updateMessageStatus);
+router
   .route("/delete")
   .delete(authController.protect, chatController.deleteMessage);
 router
