@@ -2,7 +2,7 @@ const CustomError = require("../Utiles/CustomError");
 
 const devErrors = (error, res) => {
   res.status(error.statusCode).json({
-    status: error.statusCode,
+    status: "fail",
     message: error.message,
     stackTrace: error.stack,
     error: error,
@@ -12,7 +12,7 @@ const devErrors = (error, res) => {
 const prodError = (error, res) => {
   if (error?.isOperational) {
     res.status(error.statusCode).json({
-      status: error.statusCode,
+      status: "fail",
       message: error.message,
     });
   } else {

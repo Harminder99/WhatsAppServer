@@ -6,11 +6,19 @@ process.on("uncaughtException", (err) => {
 });
 
 const app = require("./app");
+const SocketRoute = require("./Sockets/socket");
 const { default: mongoose } = require("mongoose");
 const dotenv = require("dotenv");
+const setupSocketIO = require("./Sockets/socket");
 // const Movie = require("./Models/movieModel");
 dotenv.config({ path: "./config.env" });
 
+// socket configurations
+
+const http = require("http");
+
+const httpServer = http.createServer(app);
+const io = setupSocketIO(httpServer);
 // Mongo DB Connections
 mongoose.connect(process.env.DB_CONNECTION_STRING).then((response) => {
   console.log("MongoDB Connection Succeeded.");
@@ -20,17 +28,29 @@ mongoose.connect(process.env.DB_CONNECTION_STRING).then((response) => {
 });
 
 // Connection
+// const PORT = process.env.PORT || 3000;
+// const server = app.listen(PORT, () => {
+//   console.log("App running in port: " + PORT);
+//   //console.log(process.env);
+// });
+
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-  console.log("App running in port: " + PORT);
-  //console.log(process.env);
+httpServer.listen(PORT, () => {
+  console.log(`App running on port ${PORT}`);
 });
 
 process.on("unhandledRejection", (err) => {
   console.log(err.name, " == ", err.message);
   // first close the server
-  server.close(() => {
+  httpServer.close(() => {
     // then exit all the process
     process.exit(1);
+  });
+});
+
+process.on("SIGINT", () => {
+  io.close(); // Close Socket.IO server
+  httpServer.close(() => {
+    process.exit(0);
   });
 });

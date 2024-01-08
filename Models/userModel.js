@@ -50,19 +50,22 @@ const userSchema = new mongoose.Schema(
       type: {
         type: String,
         enum: ["Point"], // 'location.type' must be 'Point'
-        default: "Point",
+        //default: "Point",
       },
       coordinates: {
         type: [Number],
-        required: true,
         validate: {
           validator: function (coordinates) {
+            // This will allow the absence of coordinates or validate them if present
             return (
-              coordinates.length === 2 &&
-              coordinates[0] >= -180 &&
-              coordinates[0] <= 180 &&
-              coordinates[1] >= -90 &&
-              coordinates[1] <= 90
+              !this.location || // Skip validation if location is not provided
+              (Array.isArray(coordinates) &&
+                coordinates.length === 2 &&
+                coordinates.every((coord) => typeof coord === "number") &&
+                coordinates[0] >= -180 &&
+                coordinates[0] <= 180 &&
+                coordinates[1] >= -90 &&
+                coordinates[1] <= 90)
             );
           },
           message: (props) => `${props.value} is not a valid coordinate array`,

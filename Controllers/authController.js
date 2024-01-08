@@ -51,6 +51,16 @@ exports.getUsers = asyncErrorHandler(async (req, res, next) => {
 });
 
 exports.signup = asyncErrorHandler(async (req, res, next) => {
+  let userData = req.body;
+  // Check if location coordinates are not provided
+  if (
+    userData.location &&
+    !userData.location.coordinates &&
+    (!userData.location.type || userData.location.type == "")
+  ) {
+    userData.location.type = "Point";
+  }
+
   const result = await User.create(req.body);
   const token = signToken(result._id);
   res.status(200).json({
@@ -74,10 +84,9 @@ exports.login = asyncErrorHandler(async (req, res, next) => {
   }
   const user = await User.findOne({ email }).select("+password");
   // const token = jwt.sign({ id: result._id }, process.env.SECRET_STR);
-
   if (!user || !(await user.comparePasswordDb(password, user.password))) {
     const err = new CustomError("Email or password is not correct", 400);
-    next(err);
+    return next(err);
   }
   await User.updateOne({ _id: user._id }, { lastLogin: Date.now() });
   res.status(200).json({
