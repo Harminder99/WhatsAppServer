@@ -41,7 +41,9 @@ const protect = asyncSocketErrorHandler(async (socket, next) => {
     return next(err);
   }
   // add user in request for further use
-  //  req.user = user;
+  const userObj = user.toObject();
+  delete userObj.password;
+  socket.user = userObj;
   // allow user to accesss the route
   next();
 });
@@ -58,9 +60,12 @@ module.exports = (httpServer) => {
   io.use(protect);
 
   io.on("connection", (socket) => {
-    console.log("A user connected");
-    socket.on("joinRoom", SocketController.joinRoom);
-    socket.on("disconnect", SocketController.disconnect);
+    console.log(io.sockets.adapter.rooms);
+    for (let value of io.sockets.adapter.rooms.values()) {
+      console.log(value);
+    }
+    socket.on("joinRoom", SocketController.joinRoom.bind(null, socket));
+    socket.on("disconnect", SocketController.disconnect.bind(null, socket));
   });
 
   return io;
