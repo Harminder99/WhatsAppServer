@@ -38,7 +38,7 @@ class ApiFeatures {
     };
   }
 
-  async fetchAgriExe(geoQuery, interestQuery) {
+  async fetchAgriExe(geoQuery, interestQuery, user) {
     let queryStr = JSON.stringify(this.queryRequest);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
     const queryObj = JSON.parse(queryStr);
@@ -70,10 +70,18 @@ class ApiFeatures {
       pipeline.push(geoQuery);
     }
     // Add a $match stage for interests if provided
+    console.log("ExcludeID ==> ", user._id);
     if (interestQuery && interestQuery.length > 0) {
       pipeline.push({
         $match: {
           interest: { $in: interestQuery },
+          _id: { $ne: user._id },
+        },
+      });
+    } else {
+      pipeline.push({
+        $match: {
+          _id: { $ne: user._id },
         },
       });
     }

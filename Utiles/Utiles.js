@@ -12,7 +12,10 @@ exports.asyncSocketErrorHandler = (handler) => {
     } catch (error) {
       console.error("Socket.IO Error:", error);
       if (typeof callback === "function") {
-        callback(`Error: ${error.message}`);
+        callback({
+          status: `Error: ${error.message}`,
+          message: `Error: ${error.message}`,
+        });
       }
     }
   };

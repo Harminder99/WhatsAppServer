@@ -6,10 +6,9 @@ process.on("uncaughtException", (err) => {
 });
 
 const app = require("./app");
-const SocketRoute = require("./Sockets/socket");
+const { init } = require("./Sockets/socket");
 const { default: mongoose } = require("mongoose");
 const dotenv = require("dotenv");
-const setupSocketIO = require("./Sockets/socket");
 // const Movie = require("./Models/movieModel");
 dotenv.config({ path: "./config.env" });
 
@@ -18,7 +17,7 @@ dotenv.config({ path: "./config.env" });
 const http = require("http");
 
 const httpServer = http.createServer(app);
-const io = setupSocketIO(httpServer);
+const io = init(httpServer);
 // Mongo DB Connections
 mongoose.connect(process.env.DB_CONNECTION_STRING).then((response) => {
   console.log("MongoDB Connection Succeeded.");

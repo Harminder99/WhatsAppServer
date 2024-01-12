@@ -44,12 +44,12 @@ const protect = asyncSocketErrorHandler(async (socket, next) => {
   const userObj = user.toObject();
   delete userObj.password;
   socket.user = userObj;
-  // allow user to accesss the route
+  // allow user to access the route
   next();
 });
 
-module.exports = (httpServer) => {
-  const io = new Server(httpServer, {
+exports.init = (httpServer) => {
+  io = new Server(httpServer, {
     pingTimeout: 60000,
     cors: {
       origin: process.env.CORS_ORIGIN,
@@ -66,6 +66,10 @@ module.exports = (httpServer) => {
     }
     socket.on("joinRoom", SocketController.joinRoom.bind(null, socket));
     socket.on("disconnect", SocketController.disconnect.bind(null, socket));
+    socket.on(
+      "sendMessage",
+      SocketController.receiveMessage.bind(null, socket, io)
+    );
   });
 
   return io;

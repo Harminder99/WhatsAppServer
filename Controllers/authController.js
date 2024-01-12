@@ -31,7 +31,8 @@ exports.getUsers = asyncErrorHandler(async (req, res, next) => {
   }
   let { results, skip, page, totalResults } = await features.fetchAgriExe(
     locationQuery,
-    interest
+    interest,
+    req.user
   );
 
   if (skip >= totalResults) {
@@ -89,11 +90,14 @@ exports.login = asyncErrorHandler(async (req, res, next) => {
     return next(err);
   }
   await User.updateOne({ _id: user._id }, { lastLogin: Date.now() });
+  const userObj = user.toObject();
+  delete userObj.password;
   res.status(200).json({
     status: "success",
     message: "Successfully user login",
     data: {
       token: signToken(user._id),
+      ...userObj,
     },
   });
 });
