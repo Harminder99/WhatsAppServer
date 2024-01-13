@@ -69,22 +69,51 @@ class ApiFeatures {
     if (geoQuery) {
       pipeline.push(geoQuery);
     }
+    // Lookup for users blocked by the logged-in user
+    pipeline.push({
+      $lookup: {
+        from: "userblocks",
+        localField: "_id",
+        foreignField: "blockTo",
+        as: "blockedByUser",
+      },
+    });
+
+    // Lookup for users who have blocked the logged-in user
+    pipeline.push({
+      $lookup: {
+        from: "userblocks",
+        localField: "_id",
+        foreignField: "blockBy",
+        as: "userBlockedBy",
+      },
+    });
+
+    // Filter out any users that are blocked or have blocked the logged-in user
+    pipeline.push({
+      $match: {
+        _id: { $ne: user._id },
+        blockedByUser: { $not: { $elemMatch: { blockBy: user._id } } },
+        userBlockedBy: { $not: { $elemMatch: { blockTo: user._id } } },
+      },
+    });
     // Add a $match stage for interests if provided
     console.log("ExcludeID ==> ", user._id);
-    if (interestQuery && interestQuery.length > 0) {
-      pipeline.push({
-        $match: {
-          interest: { $in: interestQuery },
-          _id: { $ne: user._id },
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          _id: { $ne: user._id },
-        },
-      });
-    }
+    // if (interestQuery && interestQuery.length > 0) {
+    //   pipeline.push({
+    //     $match: {
+    //       interest: { $in: interestQuery },
+    //       _id: { $ne: user._id },
+    //     },
+    //   });
+    // }
+    // else {
+    //   pipeline.push({
+    //     $match: {
+    //       _id: { $ne: user._id },
+    //     },
+    //   });
+    // }
     // other queries
     pipeline.push(
       { $skip: skip },
