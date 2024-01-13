@@ -48,6 +48,23 @@ const protect = asyncSocketErrorHandler(async (socket, next) => {
   next();
 });
 
+const protectBlock = asyncSocketErrorHandler(async (socket, next) => {
+  // read the token and check if it exist
+  // {
+  //   _id: new ObjectId('659b42e7435bacdc9b7d3b86'),
+  //   name: 'g4ffff',
+  //   email: 'hk@gmail.com',
+  //   role: 'user',
+  //   lastLogin: 2024-01-13T19:00:41.438Z,
+  //   createdAt: 2024-01-08T00:33:43.532Z,
+  //   updatedAt: 2024-01-13T19:00:41.439Z,
+  //   __v: 0
+  // }
+  let user = socket.user;
+  console.log("user socket==> ", user);
+  next();
+});
+
 exports.init = (httpServer) => {
   io = new Server(httpServer, {
     pingTimeout: 60000,
@@ -58,6 +75,7 @@ exports.init = (httpServer) => {
   });
 
   io.use(protect);
+  //io.use(protectBlock);
 
   io.on("connection", (socket) => {
     console.log(io.sockets.adapter.rooms);

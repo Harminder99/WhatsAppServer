@@ -106,13 +106,6 @@ class ApiFeatures {
         },
       });
     }
-    // else {
-    //   pipeline.push({
-    //     $match: {
-    //       _id: { $ne: user._id },
-    //     },
-    //   });
-    // }
     // other queries
     pipeline.push(
       { $skip: skip },

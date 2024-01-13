@@ -1,6 +1,11 @@
 const { asyncSocketErrorHandler } = require("../Utiles/Utiles");
 const { sendMessage } = require("../Sockets/emitter");
-const { ONE_TO_ONE_CHAT, ONE_TO_ONE_STATUS } = require("../Sockets/events");
+const UserBlock = require("../Models/blockModel");
+const {
+  ONE_TO_ONE_CHAT,
+  ONE_TO_ONE_STATUS,
+  ONE_TO_ONE_ERROR,
+} = require("../Sockets/events");
 const { getIo } = require("./socket");
 userSocketMap = {};
 
@@ -28,15 +33,55 @@ exports.receiveMessage = asyncSocketErrorHandler(
     let user = socket.user;
     let room = `CHAT_ROOM${data.receiverProfile.id}`;
     let sendTo = userSocketMap[data.receiverProfile.id];
-    if (data.event === ONE_TO_ONE_CHAT) {
-      chatting(sendTo, io, room, data, user, callback);
-    } else if (data.event === ONE_TO_ONE_STATUS) {
-      statusUpdate(sendTo, io, room, data, user, callback);
+    let isBlock = await checkIsBlocked(data.receiverProfile.id, user._id);
+
+    if (!isBlock) {
+      console.log("Not Blocked");
+      if (data.event === ONE_TO_ONE_CHAT) {
+        chatting(sendTo, io, room, data, user, callback);
+      } else if (data.event === ONE_TO_ONE_STATUS) {
+        statusUpdate(sendTo, io, room, data, user, callback);
+      } else {
+        console.log("UNKNOWN EVENT");
+      }
     } else {
-      console.log("UNKNOWN EVENT");
+      console.log("Blocked");
+      if (callback) {
+        callback({
+          status: "fail",
+          message: " blocked",
+        });
+      } else {
+        sendMessage(io, sendTo, ONE_TO_ONE_ERROR, room, {
+          message: " blocked",
+          receiverProfile: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            photo: user?.photo ?? "",
+          },
+        });
+      }
     }
   }
 );
+
+const checkIsBlocked = async (receiverId, userId) => {
+  // Block check
+  const blockExists = await UserBlock.findOne({
+    $or: [
+      { blockBy: userId, blockTo: receiverId },
+      { blockBy: receiverId, blockTo: userId },
+    ],
+  });
+
+  if (blockExists) {
+    console.log("Blocked", blockExists);
+    return true;
+  }
+  console.log("NOT Blocked", blockExists);
+  return false;
+};
 
 const chatting = (sendTo, io, room, data, user, callback) => {
   if (sendTo) {
@@ -52,6 +97,7 @@ const chatting = (sendTo, io, room, data, user, callback) => {
   } else {
     console.log("SEND NOTIFICATION TO CLIENT");
   }
+  console.log("callback ==> ", callback, "success");
   callback &&
     callback({
       status: "success",
