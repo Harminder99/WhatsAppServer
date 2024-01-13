@@ -7,7 +7,7 @@ const util = require("util");
 const sendEmail = require("./../Utiles/email");
 const crypto = require("crypto");
 const ApiFeatures = require("./../Utiles/ApiFeatures");
-
+const { default: mongoose } = require("mongoose");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.SECRET_STR);
 };
@@ -291,7 +291,7 @@ exports.updateLocation = asyncErrorHandler(async (req, res, next) => {
       coordinates[1] <= 90
     )
   ) {
-    return next(new CustomError("Please send correct coordinates"));
+    return next(new CustomError("Please send correct coordinates", 400));
   }
 
   if (!location?.type) {
@@ -312,9 +312,9 @@ exports.getBlockUser = asyncErrorHandler(async (req, res, next) => {
   const page = req.query.page * 1 || 1;
   const limit = req.query.limit * 1 || 10;
   const skip = (page - 1) * limit;
-
+  console.log("asyncErrorHandler get blocked users");
   const aggregationPipeline = [
-    { $match: { blockBy: mongoose.Types.ObjectId(id) } },
+    { $match: { blockBy: new mongoose.Types.ObjectId(id) } },
     {
       $lookup: {
         from: "users",
@@ -335,7 +335,7 @@ exports.getBlockUser = asyncErrorHandler(async (req, res, next) => {
     { $unwind: "$blockToDetails" },
     {
       $project: {
-        id: "$_id",
+        // id: "$_id",
         blockBy: {
           name: "$blockByDetails.name",
           email: "$blockByDetails.email",
@@ -355,13 +355,16 @@ exports.getBlockUser = asyncErrorHandler(async (req, res, next) => {
   ];
 
   const userBlocks = await UserBlock.aggregate(aggregationPipeline);
-
+  if (page <= 1 && (!userBlocks || userBlocks.length <= 0)) {
+    return next(new CustomError("You haven't block anyone yet.", 400));
+  } else if (page > 1 && (!userBlocks || userBlocks.length <= 0)) {
+    return next(new CustomError("This page is not available.", 400));
+  }
   res.status(200).json({
     status: "success",
     message: "Successfully retrieved block list",
     page: page ?? 1,
     length: userBlocks?.length ?? 0,
-    total: totalResults ?? 0,
     data: userBlocks,
   });
 });
@@ -384,6 +387,7 @@ exports.blockUser = asyncErrorHandler(async (req, res, next) => {
   const existingBlock = await UserBlock.findOne({ blockBy, blockTo });
 
   if (isBlock) {
+    console.log("Start Block");
     if (existingBlock) {
       // If already blocked, send an error
       return next(new CustomError("User is already blocked"));
@@ -397,6 +401,7 @@ exports.blockUser = asyncErrorHandler(async (req, res, next) => {
       });
     }
   } else {
+    console.log("Start unBlock");
     if (!existingBlock) {
       // If not already blocked, send an error
       return next(new CustomError("This user is not blocked"));
