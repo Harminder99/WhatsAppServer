@@ -99,14 +99,13 @@ class ApiFeatures {
     });
     // Add a $match stage for interests if provided
     console.log("ExcludeID ==> ", user._id);
-    // if (interestQuery && interestQuery.length > 0) {
-    //   pipeline.push({
-    //     $match: {
-    //       interest: { $in: interestQuery },
-    //       _id: { $ne: user._id },
-    //     },
-    //   });
-    // }
+    if (interestQuery && interestQuery.length > 0) {
+      pipeline.push({
+        $match: {
+          interest: { $in: interestQuery },
+        },
+      });
+    }
     // else {
     //   pipeline.push({
     //     $match: {
