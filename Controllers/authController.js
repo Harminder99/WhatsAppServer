@@ -1,5 +1,6 @@
 const { asyncErrorHandler } = require("../Utiles/Utiles");
 const User = require("./../Models/userModel");
+const UserBlock = require("./../Models/blockModel");
 const jwt = require("jsonwebtoken");
 const CustomError = require("./../Utiles/CustomError");
 const util = require("util");
@@ -303,6 +304,111 @@ exports.updateLocation = asyncErrorHandler(async (req, res, next) => {
     status: "success",
     message: "Location has been updated successfully",
   });
+});
+
+// get blockUsers List
+exports.getBlockUser = asyncErrorHandler(async (req, res, next) => {
+  const id = req.user.id;
+  const page = req.query.page * 1 || 1;
+  const limit = req.query.limit * 1 || 10;
+  const skip = (page - 1) * limit;
+
+  const aggregationPipeline = [
+    { $match: { blockBy: mongoose.Types.ObjectId(id) } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "blockBy",
+        foreignField: "_id",
+        as: "blockByDetails",
+      },
+    },
+    { $unwind: "$blockByDetails" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "blockTo",
+        foreignField: "_id",
+        as: "blockToDetails",
+      },
+    },
+    { $unwind: "$blockToDetails" },
+    {
+      $project: {
+        id: "$_id",
+        blockBy: {
+          name: "$blockByDetails.name",
+          email: "$blockByDetails.email",
+          photo: "$blockByDetails.photo",
+          userId: "$blockByDetails._id",
+        },
+        blockTo: {
+          name: "$blockToDetails.name",
+          email: "$blockToDetails.email",
+          photo: "$blockToDetails.photo",
+          userId: "$blockToDetails._id",
+        },
+      },
+    },
+    { $skip: skip },
+    { $limit: limit },
+  ];
+
+  const userBlocks = await UserBlock.aggregate(aggregationPipeline);
+
+  res.status(200).json({
+    status: "success",
+    message: "Successfully retrieved block list",
+    page: page ?? 1,
+    length: userBlocks?.length ?? 0,
+    total: totalResults ?? 0,
+    data: userBlocks,
+  });
+});
+
+// block Users
+
+exports.blockUser = asyncErrorHandler(async (req, res, next) => {
+  const { isBlock, blockTo } = req.body;
+  const blockBy = req.user.id;
+
+  if (!blockTo || isBlock === undefined) {
+    return next(
+      new CustomError(
+        "Please send all the parameters such as blockTo and isBlock"
+      )
+    );
+  }
+
+  // Check if there's an existing block
+  const existingBlock = await UserBlock.findOne({ blockBy, blockTo });
+
+  if (isBlock) {
+    if (existingBlock) {
+      // If already blocked, send an error
+      return next(new CustomError("User is already blocked"));
+    } else {
+      // If not blocked, create a new block
+      const newBlock = new UserBlock({ blockBy, blockTo });
+      await newBlock.save();
+      res.status(200).json({
+        status: "success",
+        message: `User ${blockTo} is successfully blocked`,
+      });
+    }
+  } else {
+    if (!existingBlock) {
+      // If not already blocked, send an error
+      return next(new CustomError("This user is not blocked"));
+    } else {
+      // If already blocked, remove the block
+      await UserBlock.deleteOne({ blockBy, blockTo });
+      res.status(200).json({
+        status: "success",
+        message: `User ${blockTo} is successfully unblocked`,
+      });
+    }
+  }
 });
 
 // update interests

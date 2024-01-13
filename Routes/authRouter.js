@@ -11,6 +11,8 @@ router
 router.route("/forgotPassword").post(authController.forgotPassword);
 router.route("/resetPassword/:token").patch(authController.passwordReset);
 router.route("/").get(authController.protect, authController.getUsers);
+router.route("/block").post(authController.protect, authController.blockUser);
+router.route("/block").get(authController.protect, authController.getBlockUser);
 router
   .route("/updateLocation")
   .patch(authController.protect, authController.updateLocation);
